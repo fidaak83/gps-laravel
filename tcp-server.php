@@ -33,27 +33,26 @@ function handleClient($conn) {
                     return; // Disconnect immediately on invalid IMEI
                 }
             } else {
-                parseAvlPacket($data);
-                // // Process AVL data if IMEI is already set
-                // echo "Processing AVL data for IMEI: $imei\n";
+                // Process AVL data if IMEI is already set
+                echo "Processing AVL data for IMEI: $imei\n";
 
-                // // Instantiate the Codec8Controller
-                // $controller = new Codec8Controller();
+                // Instantiate the Codec8Controller
+                $controller = new Codec8Controller();
 
-                // // Parse the AVL data and get the response
-                // $response = $controller->parse($data, $imei);
-                // echo 'Data: ' . $data;
-                // if ($response->status) {
-                //     // Send acknowledgment with the number of data elements received (4-byte integer)
-                //     $acknowledgment = pack('N', (int)$response->count);
-                //     $conn->write($acknowledgment);
-                //     echo "GPS data stored successfully for IMEI: $imei\n";
-                // } else {
-                //     // Failure response, send 0x00 acknowledgment and close connection
-                //     echo "Error processing AVL data for IMEI $imei. Sending failure acknowledgment...\n";
-                //     $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
-                //     $conn->end(); // Disconnect after error
-                // }
+                // Parse the AVL data and get the response
+                $response = $controller->parse(hex2bin($data), $imei);
+                echo 'Data: ' . $data;
+                if ($response->status) {
+                    // Send acknowledgment with the number of data elements received (4-byte integer)
+                    $acknowledgment = pack('N', (int)$response->count);
+                    $conn->write($acknowledgment);
+                    echo "GPS data stored successfully for IMEI: $imei\n";
+                } else {
+                    // Failure response, send 0x00 acknowledgment and close connection
+                    echo "Error processing AVL data for IMEI $imei. Sending failure acknowledgment...\n";
+                    $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
+                    $conn->end(); // Disconnect after error
+                }
             }
         } catch (\Exception $e) {
             echo "Error handling client data: " . $e->getMessage() . "\n";
