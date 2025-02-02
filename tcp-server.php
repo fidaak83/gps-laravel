@@ -72,10 +72,11 @@ $server->on('connection', function ($conn) {
         }
     });
 
-    // Handle connection closure
-    $conn->on('close', function () {
-        echo "Connection closed\n";
-    });
+    // Handle connection closure (commented out to keep the connection open)
+    // $conn->on('close', function () {
+    //     echo "Connection closed\n";
+    // });
+
 });
 
 // Run the event loop
