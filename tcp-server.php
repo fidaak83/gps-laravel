@@ -59,7 +59,7 @@ $server->on('connection', function ($conn) {
 
                 // Parse the AVL data and get the response
                 $response = $controller->parse($data, $imei);
-
+                echo json_encode($response);
                 if ($response->status) {
                     // Ensure avlCount is valid and send acknowledgment
                     $acknowledgment = pack('N', (int)$response->count); // Pack as 32-bit unsigned integer (network byte order)
