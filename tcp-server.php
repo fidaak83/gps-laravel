@@ -28,9 +28,8 @@ $server->on('connection', function ($conn) {
         // Log raw data in hex format to debug
         echo "Raw data received: " . bin2hex($data) . "\n";
 
-        // Process data if we have enough to process
+        // Step 1: Extract IMEI length (first two bytes)
         if (strlen($buffer) >= 2) {  // Minimum size to check IMEI length
-            // Step 1: Extract IMEI length
             $imeiLength = unpack('n', substr($buffer, 0, 2))[1];
             echo "IMEI Length: $imeiLength\n";
             
@@ -39,7 +38,7 @@ $server->on('connection', function ($conn) {
                 $grabImei = substr($buffer, 2, $imeiLength);
                 echo "Received IMEI: $grabImei\n";
 
-                // Step 2: Validate IMEI
+                // Step 2: Validate IMEI (must be 15 digits long)
                 if (strlen($grabImei) === 15 && ctype_digit($grabImei)) {
                     echo "Valid IMEI, sending acknowledgment...\n";
                     $conn->write(hex2bin('01'));  // Send 0x01 for valid IMEI
@@ -53,10 +52,9 @@ $server->on('connection', function ($conn) {
             }
         }
 
-        // Now that IMEI is processed, we can check if there is AVL data
-        if ($imei && strlen($buffer) >= 4) { // We expect 4 bytes for AVL data header
-            // Step 3: Process AVL data after receiving IMEI
-            // Extract header and check for complete AVL data length
+        // Step 2: Process AVL data if IMEI is already set
+        if ($imei && strlen($buffer) >= 4) { // We expect at least 4 bytes for AVL data header
+            // Extract AVL data header
             $header = substr($buffer, 0, 4);  // First 4 bytes are header (e.g., 0x00000000)
             $length = unpack('N', substr($buffer, 4, 4))[1];  // Data length (e.g., 0x000000FE)
             $codecId = unpack('C', substr($buffer, 8, 1))[1];  // Codec ID (e.g., 0x08)
@@ -64,7 +62,7 @@ $server->on('connection', function ($conn) {
 
             echo "Processing AVL Data: Length = $length, Codec ID = $codecId, Data Count = $dataCount\n";
 
-            // Step 4: Send acknowledgment for number of data elements (4 bytes)
+            // Step 3: Send acknowledgment for number of data elements (4 bytes)
             $acknowledgment = pack('N', $dataCount); // Pack as 32-bit unsigned integer (network byte order)
             $conn->write($acknowledgment);
             echo "Acknowledgment sent for $dataCount data elements\n";
