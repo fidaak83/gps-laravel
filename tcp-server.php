@@ -22,15 +22,12 @@ echo "TCP Server running on port 8081\n";
 // Handle new connections
 $server->on('connection', function ($conn) {
     echo "New connection from: " . $conn->getRemoteAddress() . "\n";
-    // $conn->write("Welcome to Laravel TCP Server!\n");
+    $conn->write("Welcome to Laravel TCP Server!\n");
 
     $imei = null; // Initialize IMEI variable
 
     // Handle incoming data from the client
     $conn->on('data', function ($data) use ($conn, &$imei) {
-        echo "IME: " . $imei ."\n";
-        $binaryData = hex2bin(bin2hex($data));
-        echo "DD: " . $binaryData ."\n";
         try {
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
@@ -60,7 +57,7 @@ $server->on('connection', function ($conn) {
                 $controller = new Codec8Controller();
 
                 // Parse the data and get the response
-                $response = $controller->parse($binaryData, $imei);
+                $response = $controller->parse($data, $imei);
 
                 if ($response->status) {
                     // Ensure avlCount is valid and send acknowledgment
@@ -84,10 +81,10 @@ $server->on('connection', function ($conn) {
         }
     });
 
-    // // Handle connection closure
-    // $conn->on('close', function () {
-    //     echo "Connection closed\n";
-    // });
+    // Handle connection closure
+    $conn->on('close', function () {
+        echo "Connection closed\n";
+    });
 });
 
 // Run the event loop
