@@ -29,7 +29,8 @@ $server->on('connection', function ($conn) {
     // Handle incoming data from the client
     $conn->on('data', function ($data) use ($conn, &$imei) {
         echo "IME: " . $imei ."\n";
-        echo "DD: " . $data ."\n";
+        $binaryData = hex2bin(bin2hex($data));
+        echo "DD: " . $binaryData ."\n";
         try {
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
