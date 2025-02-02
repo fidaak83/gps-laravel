@@ -30,7 +30,7 @@ $server->on('connection', function ($conn) {
     $conn->on('data', function ($data) use ($conn, &$imei) {
         try {
             if (!$imei) {
-                // Extract IMEI length (first two bytes)
+                // First 2 bytes represent the IMEI length
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
                 $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
 
@@ -43,11 +43,12 @@ $server->on('connection', function ($conn) {
                     $conn->write(hex2bin('01'));
                     echo "Acknowledgment sent: 0x01\n";
                 } else {
-                    // Invalid IMEI, send failure acknowledgment (0x00) and close connection
-                    echo "Invalid IMEI received: $grabImei, disconnecting...\n";
+                    // Invalid IMEI, send failure acknowledgment (0x00)
+                    echo "Invalid IMEI received: $grabImei, sending failure acknowledgment...\n";
                     $conn->write(hex2bin('00')); // Send 0x00 for failure
-                    $conn->end();
-                    return;
+                    // Optionally close connection here or keep open for retry
+                    // $conn->end(); // Uncomment if you want to disconnect on failure
+                    return; // End the current processing
                 }
             } else {
                 // Process AVL data if IMEI is already set
@@ -56,28 +57,30 @@ $server->on('connection', function ($conn) {
                 // Instantiate the Codec8Controller
                 $controller = new Codec8Controller();
 
-                // Parse the data and get the response
+                // Parse the AVL data
                 $response = $controller->parse($data, $imei);
 
+                // If the data is valid, send the count as a 4-byte integer (big-endian)
                 if ($response->status) {
-                    // Ensure avlCount is valid and send acknowledgment
-                    $acknowledgment = pack('N', (int)$response->count); // Pack as 32-bit unsigned integer (network byte order)
+                    // Pack the response count as 32-bit unsigned integer (network byte order)
+                    $acknowledgment = pack('N', (int)$response->count);
                     $conn->write($acknowledgment);
-                    // echo "Acknowledgment sent: $response->count data elements received for IMEI: $imei\n";
-                    echo "GPS data ($response->count) stored successfully for imei $imei";
+                    echo "GPS data ($response->count) stored successfully for IMEI: $imei\n";
 
                 } else {
-                    // Failure response, send 0x00 acknowledgment and close connection
-                    echo "Error processing AVL data for IMEI $imei. Closing connection.\n";
+                    // Failure response, send 0x00 acknowledgment
+                    echo "Error processing AVL data for IMEI $imei. Sending failure acknowledgment...\n";
                     $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
-                    $conn->end();
+                    // Optionally close connection here or keep open for retry
+                    // $conn->end(); // Uncomment if you want to disconnect after error
                 }
             }
         } catch (\Exception $e) {
             // Log and handle any errors during data processing
             echo "Error processing data for IMEI $imei: " . $e->getMessage() . "\n";
             $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
-            $conn->end();
+            // Optionally close connection here or keep open for retry
+            // $conn->end(); // Uncomment if you want to disconnect after exception
         }
     });
 
