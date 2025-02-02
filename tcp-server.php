@@ -1,19 +1,12 @@
 <?php
 
-// Require the Composer autoloader (this makes sure Laravel classes and dependencies are loaded)
+// Include the necessary libraries and set up ReactPHP
 require __DIR__.'/vendor/autoload.php';
-
-// Manually bootstrap the Laravel application
-$app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
-
-// Use ReactPHP's Event Loop and SocketServer
 use React\EventLoop\Loop;
 use React\Socket\SocketServer;
-use App\Http\Controllers\Codec8Controller;
 use Illuminate\Support\Facades\Log;
 
+// Set up event loop and server
 $loop = Loop::get();
 $server = new SocketServer('0.0.0.0:8081', [], $loop);
 
@@ -29,49 +22,43 @@ $server->on('connection', function ($conn) {
     // Handle incoming data from the client
     $conn->on('data', function ($data) use ($conn, &$imei) {
         try {
+            // If IMEI is not set, process the IMEI first
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
                 $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
-    
+
                 // Validate IMEI (should be exactly 15 digits)
                 if (strlen($grabImei) === 15 && ctype_digit($grabImei)) {
                     echo "Received IMEI: $grabImei\n";
                     $imei = $grabImei;
-    
-                    // Acknowledge valid IMEI with 0x01
+
+                    // Send acknowledgment: 0x01 for valid IMEI
                     echo "Sending acknowledgment...\n";
-                    $conn->write(hex2bin('01'));
+                    $conn->write(hex2bin('01'));  // Acknowledge valid IMEI
                     echo "Acknowledgment sent: 0x01\n";
-                    
-                    // Check connection status
-                    echo "Connection state: " . ($conn->isWritable() ? "Writable" : "Not Writable") . "\n";
-    
                 } else {
                     echo "Invalid IMEI received: $grabImei, sending failure acknowledgment...\n";
                     $conn->write(hex2bin('00')); // Send 0x00 for failure
                     return; // End the current processing
                 }
             } else {
-                // Process AVL data if IMEI is already set
+                // After IMEI is received, process AVL data packet
                 echo "Processing AVL data for IMEI: $imei\n";
-    
-                // Instantiate the Codec8Controller
-                $controller = new Codec8Controller();
-    
-                // Parse the AVL data and get the response
-                $response = $controller->parse($data, $imei);
-                echo json_encode($response);
-    
-                if ($response->status) {
-                    // Ensure avlCount is valid and send acknowledgment
-                    $acknowledgment = pack('N', (int)$response->count); // Pack as 32-bit unsigned integer (network byte order)
-                    $conn->write($acknowledgment);
-                    echo "GPS data ($response->count) stored successfully for IMEI: $imei\n";
-                } else {
-                    echo "Error processing AVL data for IMEI $imei. Sending failure acknowledgment...\n";
-                    $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
-                }
+
+                // Example: Extract AVL Data Packet header, codec ID, and number of data elements
+                $header = substr($data, 0, 4); // Four zero bytes
+                $length = unpack('N', substr($data, 4, 4))[1]; // Data length (e.g., 0x000000FE)
+                $codecId = unpack('C', substr($data, 8, 1))[1]; // Codec ID (e.g., 0x08)
+                $dataCount = unpack('C', substr($data, 9, 1))[1]; // Number of data elements (e.g., 0x02)
+
+                // Log received AVL data details
+                echo "Received AVL Data: Length = $length, Codec ID = $codecId, Data Count = $dataCount\n";
+
+                // Send acknowledgment for received data elements (4 bytes)
+                $acknowledgment = pack('N', $dataCount); // Pack as 32-bit unsigned integer (network byte order)
+                $conn->write($acknowledgment);
+                echo "Acknowledgment sent for $dataCount data elements\n";
             }
         } catch (\Exception $e) {
             echo "Error processing data for IMEI $imei: " . $e->getMessage() . "\n";
