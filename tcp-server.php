@@ -60,7 +60,7 @@ $server->on('connection', function ($conn) {
                 $controller = new Codec8Controller();
 
                 // Parse the data and get the response
-                $response = $controller->parse($data, $imei);
+                $response = $controller->parse($binaryData, $imei);
 
                 if ($response->status) {
                     // Ensure avlCount is valid and send acknowledgment
