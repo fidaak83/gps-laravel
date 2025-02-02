@@ -14,6 +14,7 @@ function handleClient($conn) {
     $conn->on('data', function ($data) use ($conn, &$imei) {
         try {
             if (!$imei) {
+                echo 'ImeI: ' . $data;
                 // Extract IMEI length (first two bytes) and IMEI from the data buffer
                 $imeiLength = unpack('n', substr($data, 0, 2))[1]; // First two bytes represent IMEI length
                 $grabImei = substr($data, 2, $imeiLength);  // Slice the buffer to get IMEI bytes
@@ -40,7 +41,7 @@ function handleClient($conn) {
 
                 // Parse the AVL data and get the response
                 $response = $controller->parse($data, $imei);
-                echo $data;
+                echo 'Data: ' . $data;
                 if ($response->status) {
                     // Send acknowledgment with the number of data elements received (4-byte integer)
                     $acknowledgment = pack('N', (int)$response->count);
