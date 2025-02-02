@@ -22,12 +22,14 @@ echo "TCP Server running on port 8081\n";
 // Handle new connections
 $server->on('connection', function ($conn) {
     echo "New connection from: " . $conn->getRemoteAddress() . "\n";
-    $conn->write("Welcome to Laravel TCP Server!\n");
+    // $conn->write("Welcome to Laravel TCP Server!\n");
 
     $imei = null; // Initialize IMEI variable
 
     // Handle incoming data from the client
     $conn->on('data', function ($data) use ($conn, &$imei) {
+        echo "IME: " . $imei ."\n";
+        echo "DD: " . $data ."\n";
         try {
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
