@@ -30,7 +30,7 @@ $server->on('connection', function ($conn) {
     $conn->on('data', function ($data) use ($conn, &$imei) {
         try {
             if (!$imei) {
-                // First 2 bytes represent the IMEI length
+                // Extract IMEI length (first two bytes)
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
                 $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
 
@@ -57,16 +57,14 @@ $server->on('connection', function ($conn) {
                 // Instantiate the Codec8Controller
                 $controller = new Codec8Controller();
 
-                // Parse the AVL data
+                // Parse the AVL data and get the response
                 $response = $controller->parse($data, $imei);
 
-                // If the data is valid, send the count as a 4-byte integer (big-endian)
                 if ($response->status) {
-                    // Pack the response count as 32-bit unsigned integer (network byte order)
-                    $acknowledgment = pack('N', (int)$response->count);
+                    // Ensure avlCount is valid and send acknowledgment
+                    $acknowledgment = pack('N', (int)$response->count); // Pack as 32-bit unsigned integer (network byte order)
                     $conn->write($acknowledgment);
                     echo "GPS data ($response->count) stored successfully for IMEI: $imei\n";
-
                 } else {
                     // Failure response, send 0x00 acknowledgment
                     echo "Error processing AVL data for IMEI $imei. Sending failure acknowledgment...\n";
