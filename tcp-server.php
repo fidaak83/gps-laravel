@@ -1,12 +1,19 @@
 <?php
 
-// Include the necessary libraries and set up ReactPHP
-require __DIR__ . '/vendor/autoload.php';
+// Require the Composer autoloader (this makes sure Laravel classes and dependencies are loaded)
+require __DIR__.'/vendor/autoload.php';
+
+// Manually bootstrap the Laravel application
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
+// Use ReactPHP's Event Loop and SocketServer
 use React\EventLoop\Loop;
 use React\Socket\SocketServer;
+use App\Http\Controllers\Codec8Controller;
 use Illuminate\Support\Facades\Log;
 
-// Set up event loop and server
 $loop = Loop::get();
 $server = new SocketServer('0.0.0.0:8081', [], $loop);
 
@@ -18,68 +25,67 @@ $server->on('connection', function ($conn) {
     $conn->write("Welcome to Laravel TCP Server!\n");
 
     $imei = null; // Initialize IMEI variable
-    static $buffer = ''; // Accumulate incoming data
 
     // Handle incoming data from the client
-    $conn->on('data', function ($data) use ($conn, &$imei, &$buffer) {
-        // Append incoming data to buffer
-        $buffer .= $data;
+    $conn->on('data', function ($data) use ($conn, &$imei) {
+        try {
+            if (!$imei) {
+                // Extract IMEI length (first two bytes)
+                $imeiLength = unpack('n', substr($data, 0, 2))[1];
+                $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
 
-        // Log raw data in hex format to debug
-        echo "Raw data received: " . bin2hex($data) . "\n";
-
-        // Step 1: Extract IMEI length (first two bytes)
-        if (strlen($buffer) >= 2) {  // Minimum size to check IMEI length
-            $imeiLength = unpack('n', substr($buffer, 0, 2))[1];
-            echo "IMEI Length: $imeiLength\n";
-            
-            // Ensure that the buffer contains the full IMEI
-            if (strlen($buffer) >= 2 + $imeiLength) {
-                $grabImei = substr($buffer, 2, $imeiLength);
-                echo "Received IMEI: $grabImei\n";
-
-                // Step 2: Validate IMEI (must be 15 digits long)
+                // Validate IMEI (should be exactly 15 digits)
                 if (strlen($grabImei) === 15 && ctype_digit($grabImei)) {
-                    echo "Valid IMEI, sending acknowledgment...\n";
-                    $conn->write(hex2bin('01'));  // Send 0x01 for valid IMEI
+                    echo "Received IMEI: $grabImei\n";
+                    $imei = $grabImei;
+
+                    // Acknowledge valid IMEI with 0x01
+                    $conn->write(hex2bin('01'));
+                    echo "Acknowledgment sent: 0x01\n";
                 } else {
-                    echo "Invalid IMEI received, sending failure acknowledgment...\n";
-                    $conn->write(hex2bin('00'));  // Send 0x00 for invalid IMEI
+                    // Invalid IMEI, send failure acknowledgment (0x00) and close connection
+                    echo "Invalid IMEI received: $grabImei, disconnecting...\n";
+                    $conn->write(hex2bin('00')); // Send 0x00 for failure
+                    $conn->end();
+                    return;
                 }
+            } else {
+                // Process AVL data if IMEI is already set
+                echo "Processing AVL data for IMEI: $imei\n";
 
-                // Clear the buffer after processing IMEI
-                $buffer = substr($buffer, 2 + $imeiLength);
+                // Instantiate the Codec8Controller
+                $controller = new Codec8Controller();
+
+                // Parse the data and get the response
+                $response = $controller->parse($data, $imei);
+
+                if ($response->status) {
+                    // Ensure avlCount is valid and send acknowledgment
+                    $acknowledgment = pack('N', (int)$response->count); // Pack as 32-bit unsigned integer (network byte order)
+                    $conn->write($acknowledgment);
+                    // echo "Acknowledgment sent: $response->count data elements received for IMEI: $imei\n";
+                    echo "GPS data ($response->count) stored successfully for imei $imei";
+
+                } else {
+                    // Failure response, send 0x00 acknowledgment and close connection
+                    echo "Error processing AVL data for IMEI $imei. Closing connection.\n";
+                    $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
+                    $conn->end();
+                }
             }
-        }
-
-        // Step 2: Process AVL data if IMEI is already set
-        if ($imei && strlen($buffer) >= 4) { // We expect at least 4 bytes for AVL data header
-            // Extract AVL data header
-            $header = substr($buffer, 0, 4);  // First 4 bytes are header (e.g., 0x00000000)
-            $length = unpack('N', substr($buffer, 4, 4))[1];  // Data length (e.g., 0x000000FE)
-            $codecId = unpack('C', substr($buffer, 8, 1))[1];  // Codec ID (e.g., 0x08)
-            $dataCount = unpack('C', substr($buffer, 9, 1))[1];  // Number of data elements (e.g., 0x02)
-
-            echo "Processing AVL Data: Length = $length, Codec ID = $codecId, Data Count = $dataCount\n";
-
-            // Step 3: Send acknowledgment for number of data elements (4 bytes)
-            $acknowledgment = pack('N', $dataCount); // Pack as 32-bit unsigned integer (network byte order)
-            $conn->write($acknowledgment);
-            echo "Acknowledgment sent for $dataCount data elements\n";
-
-            // Clear the buffer after processing AVL data
-            $buffer = substr($buffer, 4 + 4 + 1 + 1);  // Adjust buffer based on header size (4 + 4 + 1 + 1)
+        } catch (\Exception $e) {
+            // Log and handle any errors during data processing
+            echo "Error processing data for IMEI $imei: " . $e->getMessage() . "\n";
+            $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
+            $conn->end();
         }
     });
 
-    // Handle connection closure (commented out to keep the connection open)
+    // // Handle connection closure
     // $conn->on('close', function () {
     //     echo "Connection closed\n";
     // });
-
 });
 
 // Run the event loop
 $loop->run();
-
-?>
