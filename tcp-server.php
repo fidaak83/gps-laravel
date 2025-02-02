@@ -40,7 +40,7 @@ function handleClient($conn) {
                 $controller = new Codec8Controller();
 
                 // Parse the AVL data and get the response
-                $response = $controller->parse(hex2bin($data), $imei);
+                $response = $controller->parse($data, $imei);
                 echo 'Data: ' . $data;
                 if ($response->status) {
                     // Send acknowledgment with the number of data elements received (4-byte integer)
