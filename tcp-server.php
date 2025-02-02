@@ -1,7 +1,7 @@
 <?php
 
 // Include the necessary libraries and set up ReactPHP
-require __DIR__.'/vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 use React\EventLoop\Loop;
 use React\Socket\SocketServer;
 use Illuminate\Support\Facades\Log;
@@ -18,51 +18,59 @@ $server->on('connection', function ($conn) {
     $conn->write("Welcome to Laravel TCP Server!\n");
 
     $imei = null; // Initialize IMEI variable
+    static $buffer = ''; // Accumulate incoming data
 
     // Handle incoming data from the client
-    $conn->on('data', function ($data) use ($conn, &$imei) {
-        try {
-            // If IMEI is not set, process the IMEI first
-            if (!$imei) {
-                // Extract IMEI length (first two bytes)
-                $imeiLength = unpack('n', substr($data, 0, 2))[1];
-                $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
+    $conn->on('data', function ($data) use ($conn, &$imei, &$buffer) {
+        // Append incoming data to buffer
+        $buffer .= $data;
 
-                // Validate IMEI (should be exactly 15 digits)
+        // Log raw data in hex format to debug
+        echo "Raw data received: " . bin2hex($data) . "\n";
+
+        // Process data if we have enough to process
+        if (strlen($buffer) >= 2) {  // Minimum size to check IMEI length
+            // Step 1: Extract IMEI length
+            $imeiLength = unpack('n', substr($buffer, 0, 2))[1];
+            echo "IMEI Length: $imeiLength\n";
+            
+            // Ensure that the buffer contains the full IMEI
+            if (strlen($buffer) >= 2 + $imeiLength) {
+                $grabImei = substr($buffer, 2, $imeiLength);
+                echo "Received IMEI: $grabImei\n";
+
+                // Step 2: Validate IMEI
                 if (strlen($grabImei) === 15 && ctype_digit($grabImei)) {
-                    echo "Received IMEI: $grabImei\n";
-                    $imei = $grabImei;
-
-                    // Send acknowledgment: 0x01 for valid IMEI
-                    echo "Sending acknowledgment...\n";
-                    $conn->write(hex2bin('01'));  // Acknowledge valid IMEI
-                    echo "Acknowledgment sent: 0x01\n";
+                    echo "Valid IMEI, sending acknowledgment...\n";
+                    $conn->write(hex2bin('01'));  // Send 0x01 for valid IMEI
                 } else {
-                    echo "Invalid IMEI received: $grabImei, sending failure acknowledgment...\n";
-                    $conn->write(hex2bin('00')); // Send 0x00 for failure
-                    return; // End the current processing
+                    echo "Invalid IMEI received, sending failure acknowledgment...\n";
+                    $conn->write(hex2bin('00'));  // Send 0x00 for invalid IMEI
                 }
-            } else {
-                // After IMEI is received, process AVL data packet
-                echo "Processing AVL data for IMEI: $imei\n";
 
-                // Example: Extract AVL Data Packet header, codec ID, and number of data elements
-                $header = substr($data, 0, 4); // Four zero bytes
-                $length = unpack('N', substr($data, 4, 4))[1]; // Data length (e.g., 0x000000FE)
-                $codecId = unpack('C', substr($data, 8, 1))[1]; // Codec ID (e.g., 0x08)
-                $dataCount = unpack('C', substr($data, 9, 1))[1]; // Number of data elements (e.g., 0x02)
-
-                // Log received AVL data details
-                echo "Received AVL Data: Length = $length, Codec ID = $codecId, Data Count = $dataCount\n";
-
-                // Send acknowledgment for received data elements (4 bytes)
-                $acknowledgment = pack('N', $dataCount); // Pack as 32-bit unsigned integer (network byte order)
-                $conn->write($acknowledgment);
-                echo "Acknowledgment sent for $dataCount data elements\n";
+                // Clear the buffer after processing IMEI
+                $buffer = substr($buffer, 2 + $imeiLength);
             }
-        } catch (\Exception $e) {
-            echo "Error processing data for IMEI $imei: " . $e->getMessage() . "\n";
-            $conn->write(hex2bin('00'));  // Send 0x00 to indicate failure
+        }
+
+        // Now that IMEI is processed, we can check if there is AVL data
+        if ($imei && strlen($buffer) >= 4) { // We expect 4 bytes for AVL data header
+            // Step 3: Process AVL data after receiving IMEI
+            // Extract header and check for complete AVL data length
+            $header = substr($buffer, 0, 4);  // First 4 bytes are header (e.g., 0x00000000)
+            $length = unpack('N', substr($buffer, 4, 4))[1];  // Data length (e.g., 0x000000FE)
+            $codecId = unpack('C', substr($buffer, 8, 1))[1];  // Codec ID (e.g., 0x08)
+            $dataCount = unpack('C', substr($buffer, 9, 1))[1];  // Number of data elements (e.g., 0x02)
+
+            echo "Processing AVL Data: Length = $length, Codec ID = $codecId, Data Count = $dataCount\n";
+
+            // Step 4: Send acknowledgment for number of data elements (4 bytes)
+            $acknowledgment = pack('N', $dataCount); // Pack as 32-bit unsigned integer (network byte order)
+            $conn->write($acknowledgment);
+            echo "Acknowledgment sent for $dataCount data elements\n";
+
+            // Clear the buffer after processing AVL data
+            $buffer = substr($buffer, 4 + 4 + 1 + 1);  // Adjust buffer based on header size (4 + 4 + 1 + 1)
         }
     });
 
@@ -74,3 +82,5 @@ $server->on('connection', function ($conn) {
 
 // Run the event loop
 $loop->run();
+
+?>
