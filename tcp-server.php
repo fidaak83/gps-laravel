@@ -40,7 +40,7 @@ function handleClient($conn) {
 
                 // Parse the AVL data and get the response
                 $response = $controller->parse($data, $imei);
-
+                echo $data;
                 if ($response->status) {
                     // Send acknowledgment with the number of data elements received (4-byte integer)
                     $acknowledgment = pack('N', (int)$response->count);
@@ -61,7 +61,7 @@ function handleClient($conn) {
     });
 
     $conn->on('close', function () {
-        echo "Connection closed\n";
+         echo "Connection closed\n";
     });
 
     $conn->on('error', function ($e) {
