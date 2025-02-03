@@ -18,17 +18,23 @@ $server = new SocketServer('0.0.0.0:8081', [], $loop);
 
 echo "TCP Server running on port 8081\n";
 
-// Handle new connections
-$server->on('connection', function ($conn) {
+// Store IMEI by connection
+$imeiStore = [];
+
+$server->on('connection', function ($conn) use (&$imeiStore) {
     echo "New connection from: " . $conn->getRemoteAddress() . "\n";
     $conn->write("Welcome to Laravel TCP Server!\n");
 
-    $imei = null; // Initialize IMEI variable
+    // Initialize the IMEI for this connection
+    $imeiStore[spl_object_hash($conn)] = null;
 
     // Handle incoming data from the client
-    $conn->on('data', function ($data) use ($conn, &$imei) {
+    $conn->on('data', function ($data) use ($conn, &$imeiStore) {
         try {
-            if (! $imei) {
+            // Retrieve the IMEI from the store for this connection
+            $imei = &$imeiStore[spl_object_hash($conn)];
+
+            if (!$imei) {
                 // Extract IMEI length (first two bytes)
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
                 $grabImei   = substr($data, 2, $imeiLength); // Extract the IMEI bytes
@@ -39,7 +45,6 @@ $server->on('connection', function ($conn) {
                     $imei = $grabImei;
 
                     // Decision logic: Check if this IMEI should be accepted
-                    // For this example, let's assume we are accepting all valid IMEIs.
                     $accept = true; // Change this logic based on your actual acceptance criteria.
 
                     if ($accept) {
@@ -91,8 +96,10 @@ $server->on('connection', function ($conn) {
     });
 
     // Handle connection closure
-    $conn->on('close', function () use ($imei) {
+    $conn->on('close', function () use ($conn, &$imeiStore) {
+        $imei = $imeiStore[spl_object_hash($conn)];
         echo "Connection closed for IMEI: $imei\n";  // Echo IMEI on close
+        unset($imeiStore[spl_object_hash($conn)]);  // Clean up the IMEI store for this connection
     });
 });
 
