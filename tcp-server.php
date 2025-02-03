@@ -34,6 +34,7 @@ $server->on('connection', function ($conn) use (&$imeiStore) {
             // Retrieve the IMEI from the store for this connection
             $imei = &$imeiStore[spl_object_hash($conn)];
 
+            // Check if we have received the IMEI yet
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
@@ -66,7 +67,7 @@ $server->on('connection', function ($conn) use (&$imeiStore) {
                     return; // We just return and don't close the connection
                 }
             } else {
-                // Process AVL data if IMEI is already set
+                // If IMEI is valid and acknowledged, we now process the AVL data
                 echo "Processing AVL data for IMEI: $imei\n";
 
                 // Instantiate the Codec8Controller
@@ -79,7 +80,7 @@ $server->on('connection', function ($conn) use (&$imeiStore) {
                     // Ensure avlCount is valid and send acknowledgment
                     $acknowledgment = pack('N', (int) $response->count); // Pack as 32-bit unsigned integer (network byte order)
                     $conn->write($acknowledgment);
-                    echo "GPS data ($response->count) stored successfully for imei $imei";
+                    echo "GPS data ($response->count) stored successfully for IMEI $imei\n";
                 } else {
                     // Failure response, send 0x00 acknowledgment
                     echo "Error processing AVL data for IMEI $imei.\n";
