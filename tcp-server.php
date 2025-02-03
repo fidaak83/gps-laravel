@@ -91,8 +91,8 @@ $server->on('connection', function ($conn) {
     });
 
     // Handle connection closure
-    $conn->on('close', function () {
-        echo "Connection closed for $imei\n";
+    $conn->on('close', function () use ($imei) {
+        echo "Connection closed for IMEI: $imei\n";  // Echo IMEI on close
     });
 });
 
