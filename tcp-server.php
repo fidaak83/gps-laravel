@@ -92,7 +92,7 @@ $server->on('connection', function ($conn) {
 
     // Handle connection closure
     $conn->on('close', function () {
-        echo "Connection closed\n";
+        echo "Connection closed for $imei\n";
     });
 });
 
