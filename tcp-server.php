@@ -1,108 +1,100 @@
 <?php
 
-// Require the Composer autoloader (this makes sure Laravel classes and dependencies are loaded)
-require __DIR__ . '/vendor/autoload.php';
+// Define the server IP and port
+$host = '0.0.0.0';
+$port = 8081;
 
-// Manually bootstrap the Laravel application
-$app    = require_once __DIR__ . '/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
+// Create a TCP stream socket
+$server = stream_socket_server("tcp://$host:$port", $errno, $errstr);
 
-// Use ReactPHP's Event Loop and SocketServer
-use App\Http\Controllers\Codec8Controller;
-use React\EventLoop\Loop;
-use React\Socket\SocketServer;
-
-$loop   = Loop::get();
-$server = new SocketServer('0.0.0.0:8081', [], $loop);
+if (!$server) {
+    echo "Error creating server: $errstr ($errno)\n";
+    exit(1);
+}
 
 echo "TCP Server running on port 8081\n";
 
 // Store IMEI by connection
 $imeiStore = [];
 
-$server->on('connection', function ($conn) use (&$imeiStore) {
-    echo "New connection from: " . $conn->getRemoteAddress() . "\n";
-    $conn->write("Welcome to Laravel TCP Server!\n");
+// Listen for incoming connections
+while ($conn = stream_socket_accept($server)) {
+    $connHash = (int) $conn;  // Unique connection ID based on the connection resource
+    echo "New connection from: " . stream_socket_get_name($conn, true) . "\n";
+    
+    // Initialize IMEI for this connection
+    $imeiStore[$connHash] = null;
 
-    // Initialize the IMEI for this connection
-    $imeiStore[spl_object_hash($conn)] = null;
+    // Send a welcome message to the client
+    fwrite($conn, "Welcome to PHP TCP Server!\n");
 
     // Handle incoming data from the client
-    $conn->on('data', function ($data) use ($conn, &$imeiStore) {
+    while ($data = fread($conn, 1024)) {
         try {
-            // Retrieve the IMEI from the store for this connection
-            $imei = &$imeiStore[spl_object_hash($conn)];
+            // Retrieve IMEI for this connection
+            $imei = &$imeiStore[$connHash];
 
-            // Check if we have received the IMEI yet
+            // If IMEI hasn't been received yet
             if (!$imei) {
                 // Extract IMEI length (first two bytes)
                 $imeiLength = unpack('n', substr($data, 0, 2))[1];
-                $grabImei   = substr($data, 2, $imeiLength); // Extract the IMEI bytes
+                $grabImei = substr($data, 2, $imeiLength); // Extract the IMEI bytes
 
                 // Validate IMEI (should be exactly 15 digits)
                 if (strlen($grabImei) === 15 && ctype_digit($grabImei)) {
                     echo "Received IMEI: $grabImei\n";
                     $imei = $grabImei;
 
-                    // Decision logic: Check if this IMEI should be accepted
-                    $accept = true; // Change this logic based on your actual acceptance criteria.
-
-                    if ($accept) {
-                        // Send acknowledgment 0x01 to accept
-                        $conn->write(hex2bin('01')); // Binary 0x01 for acceptance
-                        echo "Acknowledgment sent: 0x01\n";
-                    } else {
-                        // Send acknowledgment 0x00 to reject
-                        $conn->write(hex2bin('00')); // Binary 0x00 for rejection
-                        echo "Acknowledgment sent: 0x00\n";
-                        // No $conn->end() here, so connection remains open even if rejected
-                        return; // We just return and don't close the connection
-                    }
+                    // Send acknowledgment 0x01 (accept)
+                    fwrite($conn, pack('C', 0x01));
+                    echo "Acknowledgment sent: 0x01\n";
                 } else {
                     // Invalid IMEI, send failure acknowledgment (0x00)
+                    fwrite($conn, pack('C', 0x00)); // Send 0x00 for failure
                     echo "Invalid IMEI received: $grabImei, rejecting...\n";
-                    $conn->write(hex2bin('00')); // Send 0x00 for failure
-                    // No $conn->end() here, so connection stays open
-                    return; // We just return and don't close the connection
+                    fclose($conn); // Close the connection after invalid IMEI
+                    unset($imeiStore[$connHash]); // Remove IMEI for this connection
+                    break; // Exit the current connection loop
                 }
             } else {
-                // If IMEI is valid and acknowledged, we now process the AVL data
+                // If IMEI is valid, process the AVL data
                 echo "Processing AVL data for IMEI: $imei\n";
 
-                // Instantiate the Codec8Controller
-                $controller = new Codec8Controller();
+                // Parse the data (you can replace this with your actual data parsing logic)
+                $response = parseAvlData($data, $imei);
 
-                // Parse the data and get the response
-                $response = $controller->parse($data, $imei);
-
-                if ($response->status) {
-                    // Ensure avlCount is valid and send acknowledgment
-                    $acknowledgment = pack('N', (int) $response->count); // Pack as 32-bit unsigned integer (network byte order)
-                    $conn->write($acknowledgment);
-                    echo "GPS data ($response->count) stored successfully for IMEI $imei\n";
+                if ($response['status']) {
+                    // Send acknowledgment with the count of successfully processed data
+                    fwrite($conn, pack('N', $response['count'])); // Send as 32-bit unsigned integer
                 } else {
                     // Failure response, send 0x00 acknowledgment
-                    echo "Error processing AVL data for IMEI $imei.\n";
-                    $conn->write(hex2bin('00')); // Send 0x00 to indicate failure
-                    // No $conn->end() here, so connection stays open after failure
+                    fwrite($conn, pack('C', 0x00)); // Send 0x00 to indicate failure
+                    echo "Error processing AVL data for IMEI $imei\n";
                 }
             }
         } catch (\Exception $e) {
             // Log and handle any errors during data processing
             echo "Error processing data for IMEI $imei: " . $e->getMessage() . "\n";
-            $conn->write(hex2bin('00')); // Send 0x00 to indicate failure
-            // No $conn->end() here, so connection stays open after error
+            fwrite($conn, pack('C', 0x00)); // Send 0x00 to indicate failure
         }
-    });
+    }
 
     // Handle connection closure
-    $conn->on('close', function () use ($conn, &$imeiStore) {
-        $imei = $imeiStore[spl_object_hash($conn)];
-        echo "Connection closed for IMEI: $imei\n";  // Echo IMEI on close
-        unset($imeiStore[spl_object_hash($conn)]);  // Clean up the IMEI store for this connection
-    });
-});
+    fclose($conn);
+    echo "Connection closed for IMEI: $imei\n";
+    unset($imeiStore[$connHash]); // Clean up the IMEI store for this connection
+}
 
-// Run the event loop
-$loop->run();
+// Function to simulate AVL data parsing (you should replace this with your own parsing logic)
+function parseAvlData($data, $imei)
+{
+    // Example of parsing AVL data
+    // In real use case, you'd replace this with actual parsing logic
+
+    echo $data . '\n';
+    echo $imei . '\n';
+    
+    
+}
+
+?>
