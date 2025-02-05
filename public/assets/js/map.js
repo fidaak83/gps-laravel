@@ -6,8 +6,8 @@ if (typeof L === 'undefined') {
     if (mapElement) {
         // Initialize the map
         const map = L.map('map', {
-            center: [24.73426655022885, 46.82908235903354],  // Set the center of the map
-            zoom: 13,  // Set the zoom level
+            center: [23.8859,45.0792],  // Set the center of the map
+            zoom: 6,  // Set the zoom level
             zoomControl: false  // Disable zoom controls
         });
 
