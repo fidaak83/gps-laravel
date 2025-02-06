@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -14,46 +13,31 @@ class GpsData extends Controller
         $data = $request->all();
         $iodata = $data['data'][0]['ioData'];
 
-        // Correct ignition check
+        // Correct ignition check: defaulting to null if not found, then setting 0 or 1
         $ignition = Arr::first($iodata, function ($io) {
             return $io['id'] === 239 ? $io['value'] : null;
         });
 
-        $result1 = [
+        // Set ignition to 1 if found and true, otherwise 0
+        $ignitionValue = (intval($ignition) == 1) ? 1 : 0;
+
+        // Prepare the result array
+        $result = [
             "imei" => $data['imei'],
             "timestamp" => $data['data'][0]['timestamp'],
             "longitude" => $data['data'][0]['gpsData']['longitude'],
             "latitude"  => $data['data'][0]['gpsData']['latitude'],
             "speed"     => $data['data'][0]['gpsData']['speed'],
-            "ignition"  => $ignition ? 1 : 0,
+            "ignition"  => $ignitionValue,
         ];
 
-
-        // Hard-coded data for testing
-        $result = [
-            "imei" => "864636067519823",
-            "timestamp" => 1738668334,
-            "longitude" => 46.9073116,
-            "latitude" => 24.48566,
-            "speed" => 64,
-            "ignition" => 1,
-        ];
-
-        // Log the result before broadcasting
+        // Log before broadcasting (ensure sensitive info like IMEI is logged properly or excluded)
         Log::info('Broadcasting Vehicle Location:', $result);
 
-        // Broadcast the event
-        // broadcast(new VehicleLocationUpdated($result))->toOthers();
-        // Example of triggering the event from a controller
-        broadcast(new \App\Events\VehicleLocationUpdated([
-            'imei' => '864636067519823',
-            'timestamp' => time(),
-            'longitude' => 46.9073116,
-            'latitude' => 24.48566,
-            'speed' => 64,
-            'ignition' => 1,
-        ]))->toOthers();
+        // Dispatch the event (uses the Laravel event system)
+        event(new VehicleLocationUpdated($result));
 
+        // Return a JSON response to confirm successful reception
         return response()->json(['status' => 'success']);
     }
 }
