@@ -3,7 +3,7 @@ APP_ENV=local
 APP_KEY=base64:BrYfzdduO6QD2OUUdnJqUEZAfZygVz8W2d1bm06jgBI=
 APP_DEBUG=true
 APP_TIMEZONE=Asia/Riyadh
-APP_URL=http://server159354.ksa-1.buzinesscloud.com   # Update with your public URL or domain name
+APP_URL=http://localhost
 
 # Locale settings
 APP_LOCALE=en
@@ -28,8 +28,8 @@ DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=gps_data
-DB_USERNAME=newline
-DB_PASSWORD= newline
+DB_USERNAME=root
+DB_PASSWORD=
 
 # Session configuration
 SESSION_DRIVER=database
@@ -72,15 +72,9 @@ BROADCAST_DRIVER=reverb
 REVERB_APP_ID=330381
 REVERB_APP_KEY=s3cfpmpciyzglks9wbhs
 REVERB_APP_SECRET=qjc1tmob4r8z9hvvx9xz
-
-# Correct Reverb host for external access (use your public domain)
-REVERB_HOST=server159354.ksa-1.buzinesscloud.com  # Change localhost to your domain for external access
-
-# Port for the Reverb server
-REVERB_PORT=8080  # Ensure this port is open and available for Reverb server
-
-# Scheme to use for Reverb (http or https)
-REVERB_SCHEME=http  # Use 'https' if your setup has SSL enabled, otherwise keep 'http'
+REVERB_HOST=localhost        # Ensure it's localhost if running locally
+REVERB_PORT=8080             # Reverb server port
+REVERB_SCHEME=http           # Use 'https' if your local setup uses SSL (not likely for localhost)
 
 # Frontend (Vite) configuration for Reverb keys
 VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
