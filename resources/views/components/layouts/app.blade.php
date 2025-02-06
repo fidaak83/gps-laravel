@@ -37,14 +37,13 @@
                         <i class="bi bi-speedometer"></i>
                     </a>
 
-                    <a href="/counter" wire:navigate class="w-full h-12 flex items-center justify-center"
-                        href="">
+                    <a href="/counter" wire:navigate class="w-full h-12 flex items-center justify-center">
                         <i class="bi bi-person-lines-fill"></i>
                     </a>
-                    <a class="w-full h-12 flex items-center justify-center" href="">
+                    <a href="/vehicle" wire:navigate class="w-full h-12 flex items-center justify-center">
                         <i class="bi bi-clipboard2-data-fill"></i>
                     </a>
-                    <a class="w-full h-12 flex items-center justify-center" href="">
+                    <a class="w-full h-12 flex items-center justify-center">
                         <i class="bi bi-gear-wide-connected"></i>
                     </a>
                 </div>

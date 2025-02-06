@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use Livewire\Component;
@@ -8,13 +9,13 @@ class VehicleLocationTracker extends Component
 {
     public $vehicle;
 
-    // Listening for the broadcasted event
+    // The event listener setup directly in the class
     protected $listeners = [
-        'vehicle-location.VehicleLocationUpdated' => 'updateLocation', // Listen for this event name
+        'VehicleLocationUpdated' => 'updateLocation',
     ];
 
     /**
-     * Handle the event and update the vehicle location.
+     * Handle the vehicle location update event.
      *
      * @param array $data
      */
@@ -22,10 +23,9 @@ class VehicleLocationTracker extends Component
     {
         // Log received data for debugging
         Log::info('Received vehicle location update:', ['vehicle_data' => $data]);
-
-        // Assuming $data contains the necessary info
-        // $data will have the 'vehicle' key, based on the structure you're broadcasting
-        $this->vehicle = $data['vehicle'];  // This should update the vehicle data with what was broadcasted
+        dd($data);
+        // Update vehicle data (assuming $data contains a 'vehicle' key)
+        $this->vehicle = $data['vehicle'];
     }
 
     /**
@@ -36,7 +36,7 @@ class VehicleLocationTracker extends Component
     public function render()
     {
         return view('livewire.vehicle-location-tracker', [
-            'vehicle' => $this->vehicle,  // Ensure vehicle data is passed to the view
+            'vehicle' => $this->vehicle,
         ]);
     }
 }
