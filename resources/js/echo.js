@@ -1,6 +1,8 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+import { updateMarker } from './map';
+
 // Set up Pusher globally
 window.Pusher = Pusher;
 console.log('Echo script loaded')
@@ -19,9 +21,11 @@ window.Echo = new Echo({
 
 // Listen to the correct channel and event
 console.log('Subscribing to vehicle-location channel...');
-window.Echo.channel('vehicle-location')
-    .listen('VehicleLocationUpdated', (e) => {
-        console.log('Received vehicle location update:', e);
+window.Echo.channel('gps')
+    .listen('.location', (e) => {
+
+        // console.log('Received vehicle location update:', e);
+        updateMarker(e.location)
     })
     .error((error) => {
         console.error('Error subscribing to event:', error);

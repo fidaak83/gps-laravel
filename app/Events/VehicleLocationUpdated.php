@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
@@ -15,7 +16,16 @@ class VehicleLocationUpdated implements ShouldBroadcastNow
 
     public function broadcastOn()
     {
-        return new Channel('vehicle-location');
+        return new Channel('gps');
     }
 
+    public function broadcastAs()
+    {
+        return 'location';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['location' => $this->vehicle];
+    }
 }

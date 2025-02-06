@@ -16,4 +16,5 @@
     <div id="map" class="h-screen z-0">
         <!-- Your map content goes here -->
     </div>
+    
 </div>

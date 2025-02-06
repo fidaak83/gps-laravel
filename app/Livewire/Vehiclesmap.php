@@ -8,6 +8,7 @@ class Vehiclesmap extends Component
 {
     public function render()
     {
-        return view('livewire.vehiclesmap');
+        $user = ["name" => "khan"];
+        return view('livewire.vehiclesmap', compact('user'));
     }
 }

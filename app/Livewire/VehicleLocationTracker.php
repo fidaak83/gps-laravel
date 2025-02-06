@@ -9,13 +9,13 @@ class VehicleLocationTracker extends Component
 {
     public $vehicle;
 
-    // The event listener setup directly in the class
+    // Listen for the 'location' event broadcast on the 'gps' channel
     protected $listeners = [
-        'VehicleLocationUpdated' => 'updateLocation',
+        'location' => 'updateLocation',
     ];
 
     /**
-     * Handle the vehicle location update event.
+     * Handle the event and update the vehicle location.
      *
      * @param array $data
      */
@@ -23,9 +23,13 @@ class VehicleLocationTracker extends Component
     {
         // Log received data for debugging
         Log::info('Received vehicle location update:', ['vehicle_data' => $data]);
-        dd($data);
-        // Update vehicle data (assuming $data contains a 'vehicle' key)
-        $this->vehicle = $data['vehicle'];
+
+        // The 'vehicle' data is passed in under the 'location' key from the broadcast
+        if (isset($data['location'])) {
+            $this->vehicle = $data['location']; // Update the vehicle data
+        } else {
+            Log::warning('No location data found in the event.');
+        }
     }
 
     /**
