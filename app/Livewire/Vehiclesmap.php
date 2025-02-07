@@ -6,9 +6,14 @@ use Livewire\Component;
 
 class Vehiclesmap extends Component
 {
+    public $customerid;
+    public function mount($id)
+    {
+        $this->customerid = $id;
+    }
     public function render()
     {
-        $user = ["name" => "khan"];
-        return view('livewire.vehiclesmap', compact('user'));
+
+        return view('livewire.vehiclesmap');
     }
 }
