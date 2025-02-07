@@ -24,7 +24,7 @@ if (typeof L === 'undefined') {
 
         // Sample vehicle data with initial position
         const initialVehicleData = {
-            imei: '864636067519849',
+            imei: '864636067510004',
             latitude: 23.8859,
             longitude: 45.0792
         };
