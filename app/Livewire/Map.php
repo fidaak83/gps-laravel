@@ -9,15 +9,15 @@ class Map extends Component
     public $customer_id; // Make customer_id public if needed elsewhere
     public $data; // Use a public property to hold the filtered vehicles
 
-    public function mount($customer_id)
+    public function mount()
     {
-        $this->customer_id = $customer_id; // Initialize customer_id
-        $this->data = $this->getvehicles($customer_id); // Fetch and store the filtered vehicles
+        // $this->customer_id = $customer_id; // Initialize customer_id
+        $this->data = $this->getvehicles(); // Fetch and store the filtered vehicles
         // var_dump($this->data);
         // dd();
     }
 
-    private function getvehicles($customer_id)
+    private function getvehicles()
     {
         $Vehicles = [
             [
@@ -49,10 +49,12 @@ class Map extends Component
             ]
         ];
 
-        // Filter vehicles based on the customer_id
-        return array_filter($Vehicles, function ($vehicle) use ($customer_id) {
-            return $vehicle['belong'] == $customer_id;
-        });
+        return $Vehicles;
+
+        // // Filter vehicles based on the customer_id
+        // return array_filter($Vehicles, function ($vehicle) use ($customer_id) {
+        //     return $vehicle['belong'] == $customer_id;
+        // });
     }
 
     public function render()

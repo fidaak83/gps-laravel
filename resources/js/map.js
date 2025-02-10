@@ -115,7 +115,7 @@ window.flyToStore = function (imei) {
     const latLng = marker.getLatLng();
 
     // Fly to the marker's position
-    window.map.flyTo(latLng, 14, {
+    window.map.flyTo(latLng, 15, {
         duration: 1 // Duration of the fly animation in seconds
     });
 

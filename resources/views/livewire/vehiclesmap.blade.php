@@ -1,5 +1,5 @@
 <div class="w-full h-64 z-10">
-    <livewire:map :customer_id="$customerid" />
+    <livewire:map />
 </div>
 
 @push('styles')

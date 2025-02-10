@@ -11,10 +11,12 @@
         "laravel/reverb": "^1.4",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "*",
-        "react/socket": "^1.16"
+        "react/socket": "^1.16",
+        "stancl/tenancy": "^3.8"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/breeze": "^2.3",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",

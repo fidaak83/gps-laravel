@@ -3,8 +3,9 @@
     <div id="vehicles" class="absolute top-0 left-0 p-4 z-20 w-48 h-full">
         <div id="card"
             class="bg-white  border p-2 max-h-full overflow-y-scroll   border-gray-200 rounded-lg shadow-xl bg-opacity-30 min-h-full backdrop-blur-sm">
-            <h2 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Vehicles:</h2>
+            <h2 class="mb-2 text-lg font-semibold text-gray-900">Vehicles:</h2>
             <ul class="text-xs font-medium text-gray-900 rounded-lg flex-col space-y-1">
+                {{-- {{$data->toJson()}} --}}
                 @foreach($data as $vehicle)
                     <li class="w-full text-green-500 border-b py-1 border-b-gray-300 truncate cursor-pointer"
                         onclick="flyToStore(`{{ $vehicle['imei'] }}`)">

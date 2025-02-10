@@ -20,7 +20,7 @@
     @stack('styles')
 </head>
 
-<body class="font-sans antialiased dark:bg-black dark:text-white/50">
+<body class="font-sans antialiased">
 
     <div class="w-full h-full relative z-1000">
         <!-- Card div placed on top of the map -->
@@ -28,16 +28,17 @@
             class="absolute top-0 left-0 p-4 z-50 sm:w-24 h-screen bg-gradient-to-br from-yellow-400 to-yellow-600">
             <div id="menu" class="p-2 border-gray-200 rounded-lg flex flex-col h-full">
                 <!-- Logo Image -->
-                <img src="{{ asset('logo.png') }}" alt="Logo" class="w-40 h-auto mb-4">
+                {{-- {{ asset('assets/logo.png') }} --}}
+                <img src="{{ url('assets/logo.png') }}" alt="Logo" class="w-40 h-auto mb-4">
 
                 <!-- Links Container with space between each link and centered items -->
                 <div class="flex flex-col flex-grow text-2xl mt-20 space-y-8 text-white">
-                    <a href="/home" 
+                    <a href="{{route('gpsmap')}}" 
                         class="w-full h-12 rounded-full flex items-center justify-center">
                         <i class="bi bi-speedometer"></i>
                     </a>
 
-                    <a href="/counter" wire:navigate class="w-full h-12 flex items-center justify-center">
+                    <a href="{{route('counter')}}" wire:navigate class="w-full h-12 flex items-center justify-center">
                         <i class="bi bi-person-lines-fill"></i>
                     </a>
                     <a href="/vehicle" wire:navigate class="w-full h-12 flex items-center justify-center">
@@ -58,6 +59,9 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.1/dist/flowbite.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
     @stack('scripts')
 </body>
 
