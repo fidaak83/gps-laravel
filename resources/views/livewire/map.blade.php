@@ -9,7 +9,7 @@
                 @foreach($data as $vehicle)
                     <li class="w-full text-green-500 border-b py-1 border-b-gray-300 truncate cursor-pointer"
                         onclick="flyToStore(`{{ $vehicle['imei'] }}`)">
-                        <i class="bi bi-truck"></i> {{ $vehicle['imei'] }}
+                        <i class="bi bi-truck"></i> {{ $vehicle['name'] }}
                     </li>
                 @endforeach
             </ul>
