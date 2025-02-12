@@ -21,7 +21,8 @@ class Map extends Component
     {
         $Vehicles = [
             [
-                "imei" => "864636067510004",
+                "imei" => "350317172563649",
+                "name" => "NL032",
                 "timestamp" => 1738931082,
                 "longitude" => 46.8023849,
                 "latitude" => 24.6289866,
@@ -31,6 +32,7 @@ class Map extends Component
             ],
             [
                 "imei" => "864636067519823",
+                "name" => "NL032",
                 "timestamp" => 1738932082,
                 "longitude" => 46.8049283,
                 "latitude" => 24.6297471,
@@ -40,6 +42,7 @@ class Map extends Component
             ],
             [
                 "imei" => "864636067519849",
+                "name" => "NL032",
                 "timestamp" => 1738933082,
                 "longitude" => 46.8056953,
                 "latitude" => 24.6301319,

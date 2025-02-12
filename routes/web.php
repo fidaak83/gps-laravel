@@ -1,11 +1,18 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
+use App\Livewire\Counter;
+use App\Livewire\Home;
+use App\Livewire\VehicleLocationTracker;
+use App\Livewire\Vehiclesmap;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/home', Vehiclesmap::class)->name('gpsmap');
+Route::get('/counter', Counter::class)->name('counter');
+Route::get('/vehicle', VehicleLocationTracker::class);
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -17,4 +24,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
