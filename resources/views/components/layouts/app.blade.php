@@ -33,7 +33,7 @@
 
                 <!-- Links Container with space between each link and centered items -->
                 <div class="flex flex-col flex-grow text-2xl mt-20 space-y-8 text-white">
-                    <a href="{{route('gpsmap')}}" 
+                    <a href="{{route('gpsmap')}}" wire:navigate 
                         class="w-full h-12 rounded-full flex items-center justify-center">
                         <i class="bi bi-speedometer"></i>
                     </a>
